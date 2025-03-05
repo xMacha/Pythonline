@@ -1,26 +1,23 @@
-// Deklaracje globalne, dostępne dla funkcji wywoływanych z HTML
+// Globalne zmienne
 let editors = new Map();
 let scriptCounter = 1;
 let saveTimeout;
 
-// Definiujemy autoSaveScript globalnie, aby inne funkcje mogły z niego korzystać
+// Globalna funkcja autoSaveScript
 function autoSaveScript(editor) {
   const tabPane = editor.getTextArea().closest('.tab-pane');
   const tabId = tabPane.id;
   const tabButton = document.querySelector(`[data-bs-target="#${tabId}"]`);
-  const title = tabButton.textContent.trim().split('×')[0].trim();
-
+  const title = tabButton.dataset.originalName || tabButton.childNodes[0].nodeValue.trim();
   fetch('/api/scripts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: title,
-      content: editor.getValue()
-    })
+    body: JSON.stringify({ title: title, content: editor.getValue() })
   });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Inicjalizacja edytora
   function initCodeEditor(element) {
     const editor = CodeMirror.fromTextArea(element, {
       mode: 'python',
@@ -49,10 +46,13 @@ document.addEventListener('DOMContentLoaded', function() {
   if (firstTextArea) {
     const firstEditor = initCodeEditor(firstTextArea);
     editors.set('script1', firstEditor);
-    loadScripts(); // Wczytaj zapisane skrypty przy ładowaniu strony
+    // Ustawiamy atrybut data-original-name dla pierwszej karty
+    const firstTab = document.querySelector('#script1-tab');
+    firstTab.dataset.originalName = firstTab.childNodes[0].nodeValue.trim();
+    loadScripts();
   }
 
-  // Wczytywanie zapisanych skryptów (jeśli ta funkcjonalność jest aktywna)
+  // Funkcja wczytująca skrypty z serwera
   function loadScripts() {
     fetch('/api/scripts')
       .then(response => response.json())
@@ -62,7 +62,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const firstEditor = editors.get('script1');
             firstEditor.setValue(script.content);
             const firstTab = document.querySelector('#script1-tab');
-            firstTab.textContent = script.title;
+            firstTab.dataset.originalName = script.title;
+            firstTab.childNodes[0].nodeValue = script.title;
           } else {
             createNewTab(script.title, script.content);
           }
@@ -70,37 +71,37 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 
-  // Podwójne kliknięcie na zakładkę – edycja nazwy
+  // Edycja nazwy karty – podwójne kliknięcie
   document.addEventListener('dblclick', function(e) {
     const tabButton = e.target.closest('.nav-link');
-    if (tabButton && !tabButton.querySelector('input')) {
-      const currentText = tabButton.textContent.trim();
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = currentText;
-      input.className = 'form-control form-control-sm d-inline-block w-auto';
-      input.style.height = '24px';
-      input.style.fontSize = '14px';
-      const originalContent = tabButton.innerHTML;
-      tabButton.innerHTML = '';
-      tabButton.appendChild(input);
-      input.focus();
-      input.select();
-      function saveTabName() {
-        const newName = input.value.trim() || originalContent.split('×')[0].trim();
-        tabButton.innerHTML = newName + ' <span class="ms-2 close-tab" onclick="event.stopPropagation();">&times;</span>';
-        const tabId = tabButton.getAttribute('data-bs-target').slice(1);
-        const editor = editors.get(tabId);
-        autoSaveScript(editor);
-      }
-      input.addEventListener('blur', saveTabName);
-      input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          saveTabName();
-          e.preventDefault();
-        }
-      });
+    if (!tabButton) return;
+    // Pobieramy aktualną nazwę bez przycisku zamykania
+    let currentName = tabButton.dataset.originalName || tabButton.childNodes[0].nodeValue.trim();
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentName;
+    input.className = 'form-control form-control-sm d-inline-block w-auto';
+    input.style.height = '24px';
+    input.style.fontSize = '14px';
+    tabButton.innerHTML = '';
+    tabButton.appendChild(input);
+    input.focus();
+    input.select();
+    function saveTabName() {
+      const newName = input.value.trim() || currentName;
+      tabButton.dataset.originalName = newName;
+      tabButton.innerHTML = newName + ' <span class="ms-2 close-tab" onclick="event.stopPropagation();">&times;</span>';
+      const tabId = tabButton.getAttribute('data-bs-target').slice(1);
+      const editor = editors.get(tabId);
+      autoSaveScript(editor);
     }
+    input.addEventListener('blur', saveTabName);
+    input.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        saveTabName();
+        e.preventDefault();
+      }
+    });
   });
 
   // Funkcja tworząca nową kartę
@@ -112,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
     newTab.className = 'nav-item';
     newTab.role = 'presentation';
     newTab.innerHTML = `
-      <button class="nav-link" id="${tabId}-tab" data-bs-toggle="tab" data-bs-target="#${tabId}" type="button" role="tab">
+      <button class="nav-link" id="${tabId}-tab" data-bs-toggle="tab" data-bs-target="#${tabId}" type="button" role="tab" data-original-name="${title}">
         ${title}
         <span class="ms-2 close-tab" onclick="event.stopPropagation();">&times;</span>
       </button>
@@ -149,19 +150,18 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.querySelector('#scriptTabs').appendChild(newTab);
     document.querySelector('#scriptTabContent').appendChild(newContent);
-    // Inicjalizacja nowego edytora
     const newEditor = initCodeEditor(newContent.querySelector('.code-editor'));
     editors.set(tabId, newEditor);
     bootstrap.Tab.getOrCreateInstance(document.querySelector(`#${tabId}-tab`)).show();
     setTimeout(() => autoSaveScript(newEditor), 100);
   }
 
-  // Obsługa przycisku nowej zakładki
+  // Obsługa przycisku "New Script"
   document.getElementById('new-tab').addEventListener('click', function() {
     createNewTab();
   });
 
-  // Zamknięcie karty – event delegation
+  // Usuwanie kart – event delegation
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('close-tab')) {
       const tab = e.target.closest('.nav-item');
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Obsługa uruchamiania kodu
+  // Uruchamianie kodu
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('run-code') || e.target.closest('.run-code')) {
       const button = e.target.closest('.run-code');
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Obsługa przycisku Clear – czyści zawartość output
+  // Przycisk "Clear" – czyści wyjście
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('clear-output')) {
       const tabPane = e.target.closest('.tab-pane');
@@ -216,11 +216,9 @@ document.addEventListener('DOMContentLoaded', function() {
       outputDiv.textContent = '';
     }
   });
-
-  // (Pozostałe funkcjonalności, np. walidacja formularzy, animacje alertów – można pozostawić bez zmian)
 });
 
-// Funkcje wywoływane z elementów HTML muszą być globalne:
+// Funkcje globalne wywoływane z elementów HTML:
 window.saveCode = function(button) {
   const tabPane = button.closest('.tab-pane');
   const tabId = tabPane.id;
