@@ -60,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/api/scripts')
       .then(response => response.json())
       .then(scripts => {
-        // Jeśli mamy zapisane skrypty, aktualizujemy pierwszą kartę i tworzymy kolejne
         if (scripts.length > 0) {
           const firstScript = scripts[0];
           const firstEditor = editors.get('script1');
@@ -95,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveTabName() {
       const newName = input.value.trim() || currentName;
       tabButton.dataset.originalName = newName;
-      tabButton.innerHTML = newName + ' <span class="ms-2 close-tab" onclick="event.stopPropagation();">&times;</span>';
+      tabButton.innerHTML = newName + ' <span class="ms-2 close-tab" onclick="removeTab(this)">×</span>';
       const tabId = tabButton.getAttribute('data-bs-target').slice(1);
       const editor = editors.get(tabId);
       autoSaveScript(editor);
@@ -106,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Tworzenie nowej karty – dodatkowy parametr scriptId umożliwia ustawienie już istniejącego id
+  // Funkcja do tworzenia nowej karty
   function createNewTab(title = null, content = null, scriptId = null) {
     scriptCounter++;
     const tabId = `script${scriptCounter}`;
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
     newTab.innerHTML = `
       <button class="nav-link" id="${tabId}-tab" data-bs-toggle="tab" data-bs-target="#${tabId}" type="button" role="tab" data-original-name="${title}" ${scriptId ? `data-script-id="${scriptId}"` : ''}>
         ${title}
-        <span class="ms-2 close-tab" onclick="event.stopPropagation();">&times;</span>
+        <span class="ms-2 close-tab" onclick="removeTab(this)">×</span>
       </button>
     `;
     const newContent = document.createElement('div');
@@ -168,27 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     createNewTab();
   });
 
-  // Usuwanie kart – gdy klikniemy znak "×"
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('close-tab')) {
-      const tab = e.target.closest('.nav-item');
-      const tabButton = tab.querySelector('.nav-link');
-      const scriptId = tabButton.dataset.scriptId;
-      if (scriptId) {
-        fetch(`/api/scripts/${scriptId}`, { method: 'DELETE' });
-      }
-      const tabId = tabButton.getAttribute('data-bs-target').slice(1);
-      const content = document.getElementById(tabId);
-      editors.delete(tabId);
-      tab.remove();
-      content.remove();
-      if (document.querySelector('#script1-tab')) {
-        bootstrap.Tab.getOrCreateInstance(document.querySelector('#script1-tab')).show();
-      }
-    }
-  });
-
-  // Uruchamianie kodu – wysyłamy też nagłówek X-Session-ID (tutaj "default")
+  // Obsługa uruchamiania kodu
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('run-code') || e.target.closest('.run-code')) {
       const button = e.target.closest('.run-code');
@@ -246,6 +225,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
   loadScripts();
 });
+
+// Globalna funkcja usuwania karty
+window.removeTab = function(elem) {
+  const tab = elem.closest('.nav-item');
+  const tabButton = tab.querySelector('.nav-link');
+  const scriptId = tabButton.dataset.scriptId;
+  if (scriptId) {
+    fetch(`/api/scripts/${scriptId}`, { method: 'DELETE' });
+  }
+  const tabId = tabButton.getAttribute('data-bs-target').slice(1);
+  const content = document.getElementById(tabId);
+  editors.delete(tabId);
+  tab.remove();
+  content.remove();
+  // Jeśli istnieje karta 'script1', ją aktywujemy
+  if (document.querySelector('#script1-tab')) {
+    bootstrap.Tab.getOrCreateInstance(document.querySelector('#script1-tab')).show();
+  }
+};
 
 // Funkcje globalne wywoływane z HTML:
 window.saveCode = function(button) {
