@@ -208,9 +208,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Obsługa interaktywnego inputu – gdy użytkownik wciska Enter w polu input
-  document.addEventListener('keypress', function(e) {
+  // Obsługa interaktywnego inputu – zmieniono z "keypress" na "keydown"
+  document.addEventListener('keydown', function(e) {
     if (e.target && e.target.classList.contains('console-input') && e.key === 'Enter') {
+      e.preventDefault();
       const inputVal = e.target.value;
       fetch('/input', {
         method: 'POST',
