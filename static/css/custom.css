@@ -59,11 +59,13 @@
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Wymuszamy tło dla karty z klasą bg-dark */
+/* Usunięto regułę wymuszającą ciemne tło dla karty */
+/*
 .card.bg-dark {
     background-color: #343a40 !important;
     color: #fff;
 }
+*/
 
 /* Button styles */
 .btn-outline-primary {
