@@ -1,0 +1,83 @@
+/* Animacje */
+.fade-in {
+    animation: fadeIn 1s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Code editor styles */
+.CodeMirror {
+    height: 400px !important;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+#output {
+    min-height: 100px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    background-color: var(--bs-dark) !important;
+    color: var(--bs-light) !important;
+}
+
+/* Terminal styles */
+#terminal {
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+}
+
+#terminal-output {
+    margin-bottom: 10px;
+}
+
+#terminal-input {
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+#terminal-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Card styles */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Button styles */
+.btn-outline-primary {
+    border-color: var(--bs-primary);
+}
+
+.btn-outline-secondary {
+    border-color: var(--bs-secondary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    .CodeMirror {
+        height: 300px !important;
+    }
+    #terminal {
+        min-height: 100px;
+    }
+}
