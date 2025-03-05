@@ -24,7 +24,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
-# Import modeli – w tym przykładzie zostają niezmienione
+# Import modeli – w tym przykładzie zakładamy, że masz zdefiniowany model Script
 from models import Script
 
 # Przechowywanie kolejek wejściowych – dla funkcji input
@@ -45,7 +45,7 @@ def track_visit():
         message = f"🌐 New visit\nTime: {timestamp}\nPath: {request.path}\nIP: {ip}\nUser Agent: {user_agent}"
         send_discord_message(VISIT_WEBHOOK, message)
 
-# Endpointy do zarządzania skryptami – usunięto logikę logowania, używamy stałego user_id (np. 1)
+# Endpointy do zarządzania skryptami
 @app.route('/api/scripts', methods=['GET'])
 def get_scripts():
     scripts = Script.query.all()
@@ -64,14 +64,13 @@ def about():
 def contact():
     return render_template('contact.html')
 
-
 @app.route('/api/scripts', methods=['POST'])
 def save_script():
     data = request.get_json()
     script = Script(
         title=data['title'],
         content=data['content'],
-        user_id=1  # stała wartość
+        user_id=1  # stała wartość dla uproszczenia
     )
     db.session.add(script)
     db.session.commit()
@@ -162,3 +161,6 @@ def handle_input():
 # Przy starcie aplikacji tworzymy tabele
 with app.app_context():
     db.create_all()
+
+if __name__ == '__main__':
+    app.run(debug=True)
