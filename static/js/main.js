@@ -29,9 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
       tabSize: 4,
       indentWithTabs: false,
       extraKeys: {
-        "Tab": function(cm) {
-          cm.replaceSelection("    ");
-        }
+        "Tab": function(cm) { cm.replaceSelection("    "); }
       }
     });
     editor.on('change', function() {
@@ -41,18 +39,17 @@ document.addEventListener('DOMContentLoaded', function() {
     return editor;
   }
 
-  // Inicjalizacja pierwszego edytora, jeśli istnieje
+  // Inicjalizacja pierwszego edytora
   const firstTextArea = document.querySelector('.code-editor');
   if (firstTextArea) {
     const firstEditor = initCodeEditor(firstTextArea);
     editors.set('script1', firstEditor);
-    // Ustawiamy atrybut data-original-name dla pierwszej karty
     const firstTab = document.querySelector('#script1-tab');
     firstTab.dataset.originalName = firstTab.childNodes[0].nodeValue.trim();
     loadScripts();
   }
 
-  // Funkcja wczytująca skrypty z serwera
+  // Wczytywanie zapisanych skryptów
   function loadScripts() {
     fetch('/api/scripts')
       .then(response => response.json())
@@ -75,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('dblclick', function(e) {
     const tabButton = e.target.closest('.nav-link');
     if (!tabButton) return;
-    // Pobieramy aktualną nazwę bez przycisku zamykania
     let currentName = tabButton.dataset.originalName || tabButton.childNodes[0].nodeValue.trim();
     const input = document.createElement('input');
     input.type = 'text';
@@ -104,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Funkcja tworząca nową kartę
+  // Tworzenie nowej karty
   function createNewTab(title = null, content = null) {
     scriptCounter++;
     const tabId = `script${scriptCounter}`;
@@ -146,13 +142,18 @@ document.addEventListener('DOMContentLoaded', function() {
           </button>
         </div>
         <pre class="output bg-dark text-light p-3 rounded">Run your code to see the output</pre>
+        <div class="console-container mt-2">
+          <input type="text" class="console-input form-control" placeholder="Type input and press Enter">
+        </div>
       </div>
     `;
     document.querySelector('#scriptTabs').appendChild(newTab);
     document.querySelector('#scriptTabContent').appendChild(newContent);
     const newEditor = initCodeEditor(newContent.querySelector('.code-editor'));
     editors.set(tabId, newEditor);
-    bootstrap.Tab.getOrCreateInstance(document.querySelector(`#${tabId}-tab`)).show();
+    const tabInstance = bootstrap.Tab.getOrCreateInstance(document.querySelector(`#${tabId}-tab`));
+    tabInstance.show();
+    newEditor.refresh();
     setTimeout(() => autoSaveScript(newEditor), 100);
   }
 
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
       outputDiv.textContent = 'Running...';
       fetch('/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Session-ID': 'default' },
         body: JSON.stringify({ code: code })
       })
       .then(response => response.json())
@@ -208,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Przycisk "Clear" – czyści wyjście
+  // Przycisk "Clear" – czyści zawartość outputu
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('clear-output')) {
       const tabPane = e.target.closest('.tab-pane');
@@ -216,9 +217,24 @@ document.addEventListener('DOMContentLoaded', function() {
       outputDiv.textContent = '';
     }
   });
+
+  // Obsługa pola interaktywnego inputu – gdy użytkownik wciśnie Enter
+  document.addEventListener('keypress', function(e) {
+    if (e.target && e.target.classList.contains('console-input') && e.key === 'Enter') {
+      const inputVal = e.target.value;
+      fetch('/input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Session-ID': 'default' },
+        body: JSON.stringify({ input: inputVal })
+      })
+      .then(response => response.json())
+      .then(data => { e.target.value = ''; })
+      .catch(error => { console.error('Input error:', error); });
+    }
+  });
 });
 
-// Funkcje globalne wywoływane z elementów HTML:
+// Funkcje globalne wywoływane z HTML:
 window.saveCode = function(button) {
   const tabPane = button.closest('.tab-pane');
   const tabId = tabPane.id;
