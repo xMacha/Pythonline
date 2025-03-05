@@ -8,14 +8,15 @@
   <p class="lead">Write and run Python code directly in your browser</p>
 </div>
 
-<div class="card fade-in">
+<!-- Dodano klasę bg-dark do karty, aby uzyskać tło -->
+<div class="card bg-dark fade-in">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <ul class="nav nav-tabs" id="scriptTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="script1-tab" data-bs-toggle="tab" data-bs-target="#script1" type="button" role="tab" data-original-name="Script 1">
             Script 1
-            <span class="ms-2 close-tab" onclick="event.stopPropagation();">&times;</span>
+            <span class="ms-2 close-tab" onclick="removeTab(this)">×</span>
           </button>
         </li>
       </ul>
